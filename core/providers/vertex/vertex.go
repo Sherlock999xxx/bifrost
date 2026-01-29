@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -1183,14 +1184,42 @@ func (provider *VertexProvider) ResponsesStream(ctx *schemas.BifrostContext, pos
 				if reqBody == nil {
 					return nil, fmt.Errorf("responses input is not provided")
 				}
-				reqBody.Model = deployment
-				// Strip unsupported fields for Vertex Gemini
-				stripVertexGeminiUnsupportedFields(reqBody)
-				return reqBody, nil
 			},
-			provider.GetProviderKey())
-		if bifrostErr != nil {
-			return nil, bifrostErr
+		)
+
+		// Check for large payload streaming mode
+		var bodyReader io.Reader
+		var bodySize int
+		if isLargePayload, ok := ctx.Value(schemas.BifrostContextKeyLargePayloadMode).(bool); ok && isLargePayload {
+			if reader, readerOk := ctx.Value(schemas.BifrostContextKeyLargePayloadReader).(io.Reader); readerOk && reader != nil {
+				bodyReader = reader
+				if contentLength, lenOk := ctx.Value(schemas.BifrostContextKeyLargePayloadContentLength).(int); lenOk {
+					bodySize = contentLength
+				}
+			}
+		}
+
+		// For normal path, convert request to []byte
+		// For large payloads, body streams via bodyReader
+		if bodyReader == nil {
+			// Use Gemini-style streaming for Gemini models
+			jsonData, bifrostErr = providerUtils.CheckContextAndGetRequestBody(
+				ctx,
+				request,
+				func() (any, error) {
+					reqBody := gemini.ToGeminiResponsesRequest(request)
+					if reqBody == nil {
+						return nil, fmt.Errorf("responses input is not provided")
+					}
+					reqBody.Model = deployment
+					// Strip unsupported fields for Vertex Gemini
+					stripVertexGeminiUnsupportedFields(reqBody)
+					return reqBody, nil
+				},
+				provider.GetProviderKey())
+			if bifrostErr != nil {
+				return nil, bifrostErr
+			}
 		}
 
 		// Auth query is used to pass the API key in the query string
@@ -1256,6 +1285,8 @@ func (provider *VertexProvider) ResponsesStream(ctx *schemas.BifrostContext, pos
 			postHookRunner,
 			postResponseConverter,
 			provider.logger,
+			bodyReader, // nil for normal path, io.Reader for large payloads
+			bodySize,   // 0 for normal path, content length for large payloads
 		)
 	} else {
 		ctx.SetValue(schemas.BifrostContextKeyIsResponsesToChatCompletionFallback, true)
