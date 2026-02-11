@@ -1,2 +1,5 @@
 feat: added support for replicate provider
 fix: fix embedContent in genai integration
+- refactor: ListModelsRequest to use the common request handling pipeline instead of its own implementation
+- feat: added support for filtering /v1/models responses based on virtual key configurations in the governance plugin
+- feat: add key-level model discovery status tracking to improve visibility into API key health and model availability.

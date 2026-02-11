@@ -9,3 +9,6 @@
 - fix: **Bedrock: ToolChoice auto handling** - Return `nil` for `auto` tool choice (Bedrock's default) instead of failing
 - fix: **Bedrock: Stop reason mapping** - Now uses own `bedrockFinishReasonToBifrost` map with Bedrock-specific stop reasons (`guardrail_intervened` -> `content_filter`, `content_filtered` -> `content_filter`)
 feat: added support for replicate provider
+feat: added support for replicate provider
+- refactor: ListModelsRequest to use the common request handling pipeline instead of its own implementation
+- feat: added support for filtering /v1/models responses based on virtual key configurations in the governance plugin
