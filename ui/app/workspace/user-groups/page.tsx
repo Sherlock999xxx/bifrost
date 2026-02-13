@@ -3,8 +3,9 @@
 import FullPageLoader from "@/components/fullPageLoader";
 import { getErrorMessage, useGetCustomersQuery, useGetTeamsQuery, useGetVirtualKeysQuery, useLazyGetCoreConfigQuery } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import UserLimitsView from "@enterprise/components/user-limits/userLimitsView";
 import UsersView from "@enterprise/components/user-groups/usersView";
-import { Building, Users, WalletCards } from "lucide-react";
+import { Building, Gauge, Users, WalletCards } from "lucide-react";
 import { useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -18,6 +19,11 @@ const tabs = [
 		id: "users",
 		label: "Users",
 		icon: <Users className="size-4" />,
+	},
+	{
+		id: "user-limits",
+		label: "User Limits",
+		icon: <Gauge className="size-4" />,
 	},
 	{
 		id: "teams",
@@ -154,6 +160,7 @@ export default function TeamsCustomersPage() {
 						virtualKeys={virtualKeysData?.virtual_keys || []}
 					/>
 				)}
+				{activeTab === "user-limits" && <UserLimitsView />}
 			</div>
 		</div>
 	);
