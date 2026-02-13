@@ -81,8 +81,9 @@ export default function SecurityView() {
 
 		const enforceVirtualKeyChanged = localConfig.enforce_governance_header !== config.enforce_governance_header;
 		const allowDirectKeysChanged = localConfig.allow_direct_keys !== config.allow_direct_keys;
+		const enforceSCIMAuthChanged = localConfig.enforce_scim_auth !== config.enforce_scim_auth;
 
-		return originsChanged || headersChanged || authChanged || enforceVirtualKeyChanged || allowDirectKeysChanged;
+		return originsChanged || headersChanged || authChanged || enforceVirtualKeyChanged || allowDirectKeysChanged || enforceSCIMAuthChanged;
 	}, [config, localConfig, authConfig, bifrostConfig]);
 
 	const needsRestart = useMemo(() => {
@@ -96,7 +97,9 @@ export default function SecurityView() {
 		const serverHeaders = config.allowed_headers?.slice().sort().join(",");
 		const headersChanged = localHeaders !== serverHeaders;
 
-		return originsChanged || headersChanged;
+		const enforceSCIMAuthChanged = localConfig.enforce_scim_auth !== config.enforce_scim_auth;
+
+		return originsChanged || headersChanged || enforceSCIMAuthChanged;
 	}, [config, localConfig]);
 
 	const handleAllowedOriginsChange = useCallback((value: string) => {
@@ -265,6 +268,25 @@ export default function SecurityView() {
 							id="enforce-governance"
 							checked={localConfig.enforce_governance_header}
 							onCheckedChange={(checked) => handleConfigChange("enforce_governance_header", checked)}
+						/>
+					</div>
+				)}
+				{/* Enforce SCIM Auth on Inference (Enterprise Only) */}
+				{IS_ENTERPRISE && (
+					<div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+						<div className="space-y-0.5">
+							<label htmlFor="enforce-scim-auth" className="text-sm font-medium">
+								Enforce SCIM Auth on Inference
+							</label>
+							<p className="text-muted-foreground text-sm">
+								Require authentication (API keys or SCIM/OAuth tokens) for all inference endpoints. When enabled, unauthenticated requests
+								to chat completions, embeddings, etc. will be rejected.
+							</p>
+						</div>
+						<Switch
+							id="enforce-scim-auth"
+							checked={localConfig.enforce_scim_auth}
+							onCheckedChange={(checked) => handleConfigChange("enforce_scim_auth", checked)}
 						/>
 					</div>
 				)}

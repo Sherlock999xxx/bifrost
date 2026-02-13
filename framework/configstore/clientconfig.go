@@ -45,6 +45,7 @@ type ClientConfig struct {
 	LogRetentionDays        int                              `json:"log_retention_days" validate:"min=1"` // Number of days to retain logs (minimum 1 day)
 	EnableGovernance        bool                             `json:"enable_governance"`                   // Enable governance on all requests
 	EnforceGovernanceHeader bool                             `json:"enforce_governance_header"`           // Enforce governance on all requests
+	EnforceSCIMAuth         bool                             `json:"enforce_scim_auth"`                   // Enforce SCIM auth on inference endpoints (enterprise only)
 	AllowDirectKeys         bool                             `json:"allow_direct_keys"`                   // Allow direct keys to be used for requests
 	AllowedOrigins          []string                         `json:"allowed_origins,omitempty"`           // Additional allowed origins for CORS and WebSocket (localhost is always allowed)
 	AllowedHeaders          []string                         `json:"allowed_headers,omitempty"`           // Additional allowed headers for CORS and WebSocket
@@ -98,6 +99,12 @@ func (c *ClientConfig) GenerateClientConfigHash() (string, error) {
 		hash.Write([]byte("enforceGovernanceHeader:true"))
 	} else {
 		hash.Write([]byte("enforceGovernanceHeader:false"))
+	}
+
+	if c.EnforceSCIMAuth {
+		hash.Write([]byte("enforceSCIMAuth:true"))
+	} else {
+		hash.Write([]byte("enforceSCIMAuth:false"))
 	}
 
 	if c.AllowDirectKeys {

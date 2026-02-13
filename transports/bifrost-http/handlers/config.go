@@ -346,6 +346,11 @@ func (h *ConfigHandler) updateConfig(ctx *fasthttp.RequestCtx) {
 	}
 	updatedConfig.AllowDirectKeys = payload.ClientConfig.AllowDirectKeys
 
+	if payload.ClientConfig.EnforceSCIMAuth != currentConfig.EnforceSCIMAuth {
+		restartReasons = append(restartReasons, "Enforce SCIM auth on inference")
+	}
+	updatedConfig.EnforceSCIMAuth = payload.ClientConfig.EnforceSCIMAuth
+
 	// Only update MaxRequestBodySizeMB if explicitly provided (> 0) to avoid clearing stored value
 	if payload.ClientConfig.MaxRequestBodySizeMB > 0 {
 		if payload.ClientConfig.MaxRequestBodySizeMB != currentConfig.MaxRequestBodySizeMB {

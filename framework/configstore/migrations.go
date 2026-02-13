@@ -250,6 +250,9 @@ func triggerMigrations(ctx context.Context, db *gorm.DB) error {
 	if err := migrationAddRateLimitToTeamsAndCustomers(ctx, db); err != nil {
 		return err
 	}
+	if err := migrationAddEnforceSCIMAuthColumn(ctx, db); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -3406,6 +3409,37 @@ func migrationAddRateLimitToTeamsAndCustomers(ctx context.Context, db *gorm.DB) 
 	}})
 	if err := m.Migrate(); err != nil {
 		return fmt.Errorf("error running rate limit migration for teams and customers: %s", err.Error())
+	}
+	return nil
+}
+
+// migrationAddEnforceSCIMAuthColumn adds the enforce_scim_auth column to the client config table
+func migrationAddEnforceSCIMAuthColumn(ctx context.Context, db *gorm.DB) error {
+	m := migrator.New(db, migrator.DefaultOptions, []*migrator.Migration{{
+		ID: "add_enforce_scim_auth_column",
+		Migrate: func(tx *gorm.DB) error {
+			tx = tx.WithContext(ctx)
+			migrator := tx.Migrator()
+			if !migrator.HasColumn(&tables.TableClientConfig{}, "enforce_scim_auth") {
+				if err := migrator.AddColumn(&tables.TableClientConfig{}, "enforce_scim_auth"); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Rollback: func(tx *gorm.DB) error {
+			tx = tx.WithContext(ctx)
+			migrator := tx.Migrator()
+			if migrator.HasColumn(&tables.TableClientConfig{}, "enforce_scim_auth") {
+				if err := migrator.DropColumn(&tables.TableClientConfig{}, "enforce_scim_auth"); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	}})
+	if err := m.Migrate(); err != nil {
+		return fmt.Errorf("error running enforce SCIM auth column migration: %s", err.Error())
 	}
 	return nil
 }

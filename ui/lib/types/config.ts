@@ -388,6 +388,7 @@ export interface CoreConfig {
 	log_retention_days: number;
 	enable_governance: boolean;
 	enforce_governance_header: boolean;
+	enforce_scim_auth: boolean;
 	allow_direct_keys: boolean;
 	allowed_origins: string[];
 	allowed_headers: string[];
@@ -410,6 +411,7 @@ export const DefaultCoreConfig: CoreConfig = {
 	log_retention_days: 365,
 	enable_governance: true,
 	enforce_governance_header: false,
+	enforce_scim_auth: false,
 	allow_direct_keys: false,
 	allowed_origins: [],
 	max_request_body_size_mb: 100,
