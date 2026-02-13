@@ -415,6 +415,22 @@ func ValidateExternalURL(urlStr string) error {
 	return nil
 }
 
+// AppendToContext appends a value to the context list value.
+// Parameters:
+//   - ctx: The Bifrost context
+//   - key: The key to append the value to
+//   - value: The value to append
+func AppendToContextList[T any](ctx *schemas.BifrostContext, key schemas.BifrostContextKey, value T) {
+	if ctx == nil {
+		return
+	}
+	existingValues, ok := ctx.Value(key).([]T)
+	if !ok {
+		existingValues = []T{}
+	}
+	ctx.SetValue(key, append(existingValues, value))
+}
+
 // isLocalhost checks if a hostname is localhost or a loopback address
 func isLocalhost(hostname string) bool {
 	return hostname == "localhost" ||

@@ -78,45 +78,45 @@ type SearchStats struct {
 // Log represents a complete log entry for a request/response cycle
 // This is the GORM model with appropriate tags
 type Log struct {
-	ID                    string    `gorm:"primaryKey;type:varchar(255)" json:"id"`
-	ParentRequestID       *string   `gorm:"type:varchar(255)" json:"parent_request_id"`
-	Timestamp             time.Time `gorm:"index;not null" json:"timestamp"`
-	Object                string    `gorm:"type:varchar(255);index;not null;column:object_type" json:"object"` // text.completion, chat.completion, or embedding
-	Provider              string    `gorm:"type:varchar(255);index;not null" json:"provider"`
-	Model                 string    `gorm:"type:varchar(255);index;not null" json:"model"`
-	NumberOfRetries       int       `gorm:"default:0" json:"number_of_retries"`
-	FallbackIndex         int       `gorm:"default:0" json:"fallback_index"`
-	SelectedKeyID         string    `gorm:"type:varchar(255);index:idx_logs_selected_key_id" json:"selected_key_id"`
-	SelectedKeyName       string    `gorm:"type:varchar(255)" json:"selected_key_name"`
-	VirtualKeyID          *string   `gorm:"type:varchar(255);index:idx_logs_virtual_key_id" json:"virtual_key_id"`
-	VirtualKeyName        *string   `gorm:"type:varchar(255)" json:"virtual_key_name"`
-	RoutingEngineUsed     *string   `gorm:"type:varchar(255);index:idx_logs_routing_engine_used" json:"routing_engine_used"`
-	RoutingRuleID         *string   `gorm:"type:varchar(255);index:idx_logs_routing_rule_id" json:"routing_rule_id"`
-	RoutingRuleName       *string   `gorm:"type:varchar(255)" json:"routing_rule_name"`
-	InputHistory          string    `gorm:"type:text" json:"-"` // JSON serialized []schemas.ChatMessage
-	ResponsesInputHistory string    `gorm:"type:text" json:"-"` // JSON serialized []schemas.ResponsesMessage
-	OutputMessage         string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.ChatMessage
-	ResponsesOutput       string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.ResponsesMessage
-	EmbeddingOutput       string    `gorm:"type:text" json:"-"` // JSON serialized [][]float32
-	Params                string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.ModelParameters
-	Tools                 string    `gorm:"type:text" json:"-"` // JSON serialized []schemas.Tool
-	ToolCalls             string    `gorm:"type:text" json:"-"` // JSON serialized []schemas.ToolCall (For backward compatibility, tool calls are now in the content)
-	SpeechInput           string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.SpeechInput
-	TranscriptionInput    string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.TranscriptionInput
-	ImageGenerationInput  string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.ImageGenerationInput
-	SpeechOutput          string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.BifrostSpeech
-	TranscriptionOutput   string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.BifrostTranscribe
-	ImageGenerationOutput string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.BifrostImageGenerationResponse
-	CacheDebug            string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.BifrostCacheDebug
-	Latency               *float64  `gorm:"index:idx_logs_latency" json:"latency,omitempty"`
-	TokenUsage            string    `gorm:"type:text" json:"-"`                            // JSON serialized *schemas.LLMUsage
-	Cost                  *float64  `gorm:"index" json:"cost,omitempty"`                   // Cost in dollars (total cost of the request - includes cache lookup cost)
-	Status                string    `gorm:"type:varchar(50);index;not null" json:"status"` // "processing", "success", or "error"
-	ErrorDetails          string    `gorm:"type:text" json:"-"`                            // JSON serialized *schemas.BifrostError
-	Stream                bool      `gorm:"default:false" json:"stream"`                   // true if this was a streaming response
-	ContentSummary        string    `gorm:"type:text" json:"-"`
-	RawRequest            string    `gorm:"type:text" json:"raw_request"`  // Populated when `send-back-raw-request` is on
-	RawResponse           string    `gorm:"type:text" json:"raw_response"` // Populated when `send-back-raw-response` is on
+	ID                     string    `gorm:"primaryKey;type:varchar(255)" json:"id"`
+	ParentRequestID        *string   `gorm:"type:varchar(255)" json:"parent_request_id"`
+	Timestamp              time.Time `gorm:"index;not null" json:"timestamp"`
+	Object                 string    `gorm:"type:varchar(255);index;not null;column:object_type" json:"object"` // text.completion, chat.completion, or embedding
+	Provider               string    `gorm:"type:varchar(255);index;not null" json:"provider"`
+	Model                  string    `gorm:"type:varchar(255);index;not null" json:"model"`
+	NumberOfRetries        int       `gorm:"default:0" json:"number_of_retries"`
+	FallbackIndex          int       `gorm:"default:0" json:"fallback_index"`
+	SelectedKeyID          string    `gorm:"type:varchar(255);index:idx_logs_selected_key_id" json:"selected_key_id"`
+	SelectedKeyName        string    `gorm:"type:varchar(255)" json:"selected_key_name"`
+	VirtualKeyID           *string   `gorm:"type:varchar(255);index:idx_logs_virtual_key_id" json:"virtual_key_id"`
+	VirtualKeyName         *string   `gorm:"type:varchar(255)" json:"virtual_key_name"`
+	RoutingEnginesUsedStr  *string   `gorm:"type:varchar(255);column:routing_engines_used" json:"-"` // Comma-separated routing engines
+	RoutingRuleID          *string   `gorm:"type:varchar(255);index:idx_logs_routing_rule_id" json:"routing_rule_id"`
+	RoutingRuleName        *string   `gorm:"type:varchar(255)" json:"routing_rule_name"`
+	InputHistory           string    `gorm:"type:text" json:"-"` // JSON serialized []schemas.ChatMessage
+	ResponsesInputHistory  string    `gorm:"type:text" json:"-"` // JSON serialized []schemas.ResponsesMessage
+	OutputMessage          string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.ChatMessage
+	ResponsesOutput        string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.ResponsesMessage
+	EmbeddingOutput        string    `gorm:"type:text" json:"-"` // JSON serialized [][]float32
+	Params                 string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.ModelParameters
+	Tools                  string    `gorm:"type:text" json:"-"` // JSON serialized []schemas.Tool
+	ToolCalls              string    `gorm:"type:text" json:"-"` // JSON serialized []schemas.ToolCall (For backward compatibility, tool calls are now in the content)
+	SpeechInput            string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.SpeechInput
+	TranscriptionInput     string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.TranscriptionInput
+	ImageGenerationInput   string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.ImageGenerationInput
+	SpeechOutput           string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.BifrostSpeech
+	TranscriptionOutput    string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.BifrostTranscribe
+	ImageGenerationOutput  string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.BifrostImageGenerationResponse
+	CacheDebug             string    `gorm:"type:text" json:"-"` // JSON serialized *schemas.BifrostCacheDebug
+	Latency                *float64  `gorm:"index:idx_logs_latency" json:"latency,omitempty"`
+	TokenUsage             string    `gorm:"type:text" json:"-"`                            // JSON serialized *schemas.LLMUsage
+	Cost                   *float64  `gorm:"index" json:"cost,omitempty"`                   // Cost in dollars (total cost of the request - includes cache lookup cost)
+	Status                 string    `gorm:"type:varchar(50);index;not null" json:"status"` // "processing", "success", or "error"
+	ErrorDetails           string    `gorm:"type:text" json:"-"`                            // JSON serialized *schemas.BifrostError
+	Stream                 bool      `gorm:"default:false" json:"stream"`                   // true if this was a streaming response
+	ContentSummary         string    `gorm:"type:text" json:"-"`
+	RawRequest             string    `gorm:"type:text" json:"raw_request"`  // Populated when `send-back-raw-request` is on
+	RawResponse            string    `gorm:"type:text" json:"raw_response"` // Populated when `send-back-raw-response` is on
 
 	// Denormalized token fields for easier querying
 	PromptTokens     int `gorm:"default:0" json:"-"`
@@ -126,6 +126,7 @@ type Log struct {
 	CreatedAt time.Time `gorm:"index;not null" json:"created_at"`
 
 	// Virtual fields for JSON output - these will be populated when needed
+	RoutingEnginesUsed          []string                                `gorm:"-" json:"routing_engines_used,omitempty"` // Virtual field deserialized from JSON
 	InputHistoryParsed          []schemas.ChatMessage                   `gorm:"-" json:"input_history,omitempty"`
 	ResponsesInputHistoryParsed []schemas.ResponsesMessage              `gorm:"-" json:"responses_input_history,omitempty"`
 	OutputMessageParsed         *schemas.ChatMessage                    `gorm:"-" json:"output_message,omitempty"`
@@ -189,6 +190,14 @@ func (l *Log) AfterFind(tx *gorm.DB) error {
 
 // SerializeFields converts Go structs to JSON strings for storage
 func (l *Log) SerializeFields() error {
+	// Serialize routing engines to comma-separated string
+	if len(l.RoutingEnginesUsed) > 0 {
+		engineStr := strings.Join(l.RoutingEnginesUsed, ",")
+		l.RoutingEnginesUsedStr = &engineStr
+	} else {
+		l.RoutingEnginesUsedStr = nil
+	}
+
 	if l.InputHistoryParsed != nil {
 		if data, err := json.Marshal(l.InputHistoryParsed); err != nil {
 			return err
@@ -455,6 +464,13 @@ func (l *Log) DeserializeFields() error {
 			// Log error but don't fail the operation - initialize as nil
 			l.CacheDebugParsed = nil
 		}
+	}
+
+	if l.RoutingEnginesUsedStr != nil && *l.RoutingEnginesUsedStr != "" {
+		// Parse comma-separated routing engines
+		l.RoutingEnginesUsed = strings.Split(*l.RoutingEnginesUsedStr, ",")
+	} else {
+		l.RoutingEnginesUsed = []string{}
 	}
 
 	return nil

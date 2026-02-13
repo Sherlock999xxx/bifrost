@@ -127,6 +127,9 @@ func triggerMigrations(ctx context.Context, db *gorm.DB) error {
 	if err := migrationAddRoutingEngineUsedColumn(ctx, db); err != nil {
 		return err
 	}
+	if err := migrationAddRoutingEnginesUsedJSONColumn(ctx, db); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1061,7 +1064,8 @@ func migrationAddRoutingEngineUsedColumn(ctx context.Context, db *gorm.DB) error
 			tx = tx.WithContext(ctx)
 			migrator := tx.Migrator()
 			if !migrator.HasColumn(&Log{}, "routing_engine_used") {
-				if err := migrator.AddColumn(&Log{}, "routing_engine_used"); err != nil {
+				// Use raw SQL to avoid GORM struct field dependency
+				if err := tx.Exec("ALTER TABLE logs ADD COLUMN routing_engine_used VARCHAR(255)").Error; err != nil {
 					return err
 				}
 			}
@@ -1083,4 +1087,53 @@ func migrationAddRoutingEngineUsedColumn(ctx context.Context, db *gorm.DB) error
 		return fmt.Errorf("error while adding routing engine used column: %s", err.Error())
 	}
 	return nil
+}
+
+func migrationAddRoutingEnginesUsedJSONColumn(ctx context.Context, db *gorm.DB) error {
+	opts := *migrator.DefaultOptions
+	opts.UseTransaction = true
+	m := migrator.New(db, &opts, []*migrator.Migration{{
+		ID: "logs_add_routing_engines_used_json_column",
+		Migrate: func(tx *gorm.DB) error {
+			tx = tx.WithContext(ctx)
+			migrator := tx.Migrator()
+
+			hasOldColumn := migrator.HasColumn(&Log{}, "routing_engine_used")
+			hasNewColumn := migrator.HasColumn(&Log{}, "routing_engines_used")
+
+			if hasOldColumn && !hasNewColumn {
+				// Rename old column to new if new doesn't exist yet
+				if err := migrator.RenameColumn(&Log{}, "routing_engine_used", "routing_engines_used"); err != nil {
+					return fmt.Errorf("failed to rename routing_engine_used to routing_engines_used: %w", err)
+				}
+			} else if hasOldColumn && hasNewColumn {
+				// Both columns exist - drop the old one (new column is already in use)
+				if err := migrator.DropColumn(&Log{}, "routing_engine_used"); err != nil {
+					return fmt.Errorf("failed to drop old routing_engine_used column: %w", err)
+				}
+			}
+			// If only new column exists, do nothing (already migrated)
+
+			return nil
+		},
+		Rollback: func(tx *gorm.DB) error {
+			tx = tx.WithContext(ctx)
+			migrator := tx.Migrator()
+
+			hasNewColumn := migrator.HasColumn(&Log{}, "routing_engines_used")
+			hasOldColumn := migrator.HasColumn(&Log{}, "routing_engine_used")
+
+			if hasNewColumn && !hasOldColumn {
+				// Rename new column back to old if old doesn't exist
+				if err := migrator.RenameColumn(&Log{}, "routing_engines_used", "routing_engine_used"); err != nil {
+					return fmt.Errorf("failed to rename routing_engines_used back to routing_engine_used: %w", err)
+				}
+			}
+			// If old column was dropped, recreate it would be complex, so we skip
+
+			return nil
+		},
+	}})
+
+	return m.Migrate()
 }
