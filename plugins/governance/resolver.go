@@ -31,6 +31,7 @@ type EvaluationRequest struct {
 	VirtualKey string                `json:"virtual_key"` // Virtual key value
 	Provider   schemas.ModelProvider `json:"provider"`
 	Model      string                `json:"model"`
+	UserID     string                `json:"user_id,omitempty"` // User ID for user-level governance (enterprise only)
 }
 
 // EvaluationResult contains the complete result of governance evaluation
@@ -120,6 +121,40 @@ func (r *BudgetResolver) EvaluateModelAndProviderRequest(ctx *schemas.BifrostCon
 	return &EvaluationResult{
 		Decision: DecisionAllow,
 		Reason:   "Request allowed by governance policy (provider-level and model-level checks passed)",
+	}
+}
+
+// EvaluateUserRequest evaluates user-level rate limits and budgets (enterprise-only)
+// This runs after provider/model checks but before VK checks
+// Returns DecisionAllow if userID is empty or user has no governance configured
+func (r *BudgetResolver) EvaluateUserRequest(ctx *schemas.BifrostContext, userID string, request *EvaluationRequest) *EvaluationResult {
+	// Skip if no userID (non-enterprise or anonymous request)
+	if userID == "" {
+		return &EvaluationResult{
+			Decision: DecisionAllow,
+			Reason:   "No user ID provided, skipping user-level checks",
+		}
+	}
+
+	// Check user-level rate limits
+	if err, decision := r.store.CheckUserRateLimit(ctx, userID, request, nil, nil); err != nil {
+		return &EvaluationResult{
+			Decision: decision,
+			Reason:   fmt.Sprintf("User-level rate limit exceeded: %s", err.Error()),
+		}
+	}
+
+	// Check user-level budget
+	if err := r.store.CheckUserBudget(ctx, userID, request, nil); err != nil {
+		return &EvaluationResult{
+			Decision: DecisionBudgetExceeded,
+			Reason:   fmt.Sprintf("User-level budget exceeded: %s", err.Error()),
+		}
+	}
+
+	return &EvaluationResult{
+		Decision: DecisionAllow,
+		Reason:   "User-level checks passed",
 	}
 }
 

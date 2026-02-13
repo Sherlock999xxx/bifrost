@@ -731,6 +731,11 @@ func (p *GovernancePlugin) evaluateGovernanceRequest(ctx *schemas.BifrostContext
 	// First evaluate model and provider checks (applies even when virtual keys are disabled or not present)
 	result := p.resolver.EvaluateModelAndProviderRequest(ctx, evaluationRequest.Provider, evaluationRequest.Model)
 
+	// Check user-level governance (enterprise-only, runs before VK checks)
+	if result.Decision == DecisionAllow {
+		result = p.resolver.EvaluateUserRequest(ctx, evaluationRequest.UserID, evaluationRequest)
+	}
+
 	// If model/provider checks passed and virtual key exists, evaluate virtual key checks
 	// This will overwrite the result with virtual key-specific decision
 	if result.Decision == DecisionAllow && evaluationRequest.VirtualKey != "" {
@@ -802,6 +807,8 @@ func (p *GovernancePlugin) evaluateGovernanceRequest(ctx *schemas.BifrostContext
 func (p *GovernancePlugin) PreLLMHook(ctx *schemas.BifrostContext, req *schemas.BifrostRequest) (*schemas.BifrostRequest, *schemas.LLMPluginShortCircuit, error) {
 	// Extract governance headers and virtual key using utility functions
 	virtualKeyValue := bifrost.GetStringFromContext(ctx, schemas.BifrostContextKeyVirtualKey)
+	// Extract user ID for enterprise user-level governance
+	userID := bifrost.GetStringFromContext(ctx, schemas.BifrostContextKeyGovernanceUserID)
 	// Getting provider and mode from the request
 	provider, model, _ := req.GetRequestFields()
 	// Create request context for evaluation
@@ -809,6 +816,7 @@ func (p *GovernancePlugin) PreLLMHook(ctx *schemas.BifrostContext, req *schemas.
 		VirtualKey: virtualKeyValue,
 		Provider:   provider,
 		Model:      model,
+		UserID:     userID,
 	}
 	// Evaluate governance using common function
 	_, bifrostError := p.evaluateGovernanceRequest(ctx, evaluationRequest, req.RequestType)
@@ -840,6 +848,8 @@ func (p *GovernancePlugin) PostLLMHook(ctx *schemas.BifrostContext, result *sche
 	// Extract governance information
 	virtualKey := bifrost.GetStringFromContext(ctx, schemas.BifrostContextKeyVirtualKey)
 	requestID := bifrost.GetStringFromContext(ctx, schemas.BifrostContextKeyRequestID)
+	// Extract user ID for enterprise user-level governance
+	userID := bifrost.GetStringFromContext(ctx, schemas.BifrostContextKeyGovernanceUserID)
 
 	// Extract request type, provider, and model
 	requestType, provider, model := bifrost.GetResponseFields(result, err)
@@ -868,7 +878,7 @@ func (p *GovernancePlugin) PostLLMHook(ctx *schemas.BifrostContext, result *sche
 		go func() {
 			defer p.wg.Done()
 			// Pass virtualKey (empty string if not present) - tracker handles this case
-			p.postHookWorker(result, provider, model, requestType, virtualKey, requestID, isCacheRead, isBatch, isFinalChunk)
+			p.postHookWorker(result, provider, model, requestType, virtualKey, requestID, userID, isCacheRead, isBatch, isFinalChunk)
 		}()
 	}
 
@@ -1002,10 +1012,11 @@ func (p *GovernancePlugin) Cleanup() error {
 //   - requestType: The type of the request
 //   - virtualKey: The virtual key of the request (empty string if not present)
 //   - requestID: The request ID
+//   - userID: The user ID for enterprise user-level governance (empty string if not present)
 //   - isCacheRead: Whether the request is a cache read
 //   - isBatch: Whether the request is a batch request
 //   - isFinalChunk: Whether the request is the final chunk
-func (p *GovernancePlugin) postHookWorker(result *schemas.BifrostResponse, provider schemas.ModelProvider, model string, requestType schemas.RequestType, virtualKey, requestID string, _, _, isFinalChunk bool) {
+func (p *GovernancePlugin) postHookWorker(result *schemas.BifrostResponse, provider schemas.ModelProvider, model string, requestType schemas.RequestType, virtualKey, requestID, userID string, _, _, isFinalChunk bool) {
 	// Determine if request was successful
 	success := (result != nil)
 
@@ -1049,6 +1060,7 @@ func (p *GovernancePlugin) postHookWorker(result *schemas.BifrostResponse, provi
 			TokensUsed:   int64(tokensUsed),
 			Cost:         cost,
 			RequestID:    requestID,
+			UserID:       userID,
 			IsStreaming:  isStreaming,
 			IsFinalChunk: isFinalChunk,
 			HasUsageData: tokensUsed > 0,
