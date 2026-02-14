@@ -52,6 +52,7 @@ const (
 	Nebius      ModelProvider = "nebius"
 	XAI         ModelProvider = "xai"
 	Replicate   ModelProvider = "replicate"
+	VLLM        ModelProvider = "vllm"
 )
 
 // SupportedBaseProviders is the list of base providers allowed for custom providers.
@@ -87,6 +88,7 @@ var StandardProviders = []ModelProvider{
 	Nebius,
 	XAI,
 	Replicate,
+	VLLM,
 }
 
 // RequestType represents the type of request being made to a provider.

@@ -143,6 +143,7 @@ func (account *ComprehensiveTestAccount) GetConfiguredProviders() ([]schemas.Mod
 		schemas.Nebius,
 		schemas.XAI,
 		schemas.Replicate,
+		schemas.VLLM,
 		ProviderOpenAICustom,
 	}, nil
 }
@@ -352,6 +353,15 @@ func (account *ComprehensiveTestAccount) GetKeysForProvider(ctx context.Context,
 		return []schemas.Key{
 			{
 				Value:          *schemas.NewEnvVar("env.CEREBRAS_API_KEY"),
+				Models:         []string{},
+				Weight:         1.0,
+				UseForBatchAPI: bifrost.Ptr(true),
+			},
+		}, nil
+	case schemas.VLLM:
+		return []schemas.Key{
+			{
+				Value:          *schemas.NewEnvVar("env.VLLM_API_KEY"),
 				Models:         []string{},
 				Weight:         1.0,
 				UseForBatchAPI: bifrost.Ptr(true),
@@ -622,6 +632,20 @@ func (account *ComprehensiveTestAccount) GetConfigForProvider(providerKey schema
 			NetworkConfig: schemas.NetworkConfig{
 				DefaultRequestTimeoutInSeconds: 120,
 				MaxRetries:                     10, // Cerebras is reasonably stable
+				RetryBackoffInitial:            5 * time.Second,
+				RetryBackoffMax:                3 * time.Minute,
+			},
+			ConcurrencyAndBufferSize: schemas.ConcurrencyAndBufferSize{
+				Concurrency: Concurrency,
+				BufferSize:  10,
+			},
+		}, nil
+	case schemas.VLLM:
+		return &schemas.ProviderConfig{
+			NetworkConfig: schemas.NetworkConfig{
+				BaseURL:                        os.Getenv("VLLM_BASE_URL"),
+				DefaultRequestTimeoutInSeconds: 120,
+				MaxRetries:                     10, // vllm is stable
 				RetryBackoffInitial:            5 * time.Second,
 				RetryBackoffMax:                3 * time.Minute,
 			},
